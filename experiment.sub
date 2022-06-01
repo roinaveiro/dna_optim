@@ -1,0 +1,16 @@
+#!/bin/bash
+#$ -l h_vmem=64G
+#$ -q teano
+#$ -pe smp 64
+#$ -j yes
+#$ -cwd
+
+# Load anaconda malware environment
+conda activate dna_optim
+# Run the executable
+python -u train_others.py > other_small.log
+
+# python -u preprocess.py > preprocess.log
+
+# Deactivate anaconda environment
+conda deactivate

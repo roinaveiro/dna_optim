@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Data
+data/
+
+# Trash
+tmp/
+
+# Saved models and results
+results/

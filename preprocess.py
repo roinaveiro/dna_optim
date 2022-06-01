@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 import pickle
+import string
 
 def preprocess(data):
 
@@ -51,12 +52,43 @@ def get_full_data(path="data/", path_data="data/gene_FPKM_200501.csv",
     print("Merge done...")
     full_df.to_csv(path + "full.csv", index = False)
 
+def genes_with_N(df):
+
+    #amb_list = ['N', 'M', 'W']
+
+    amb_list = list(string.ascii_uppercase)
+    amb_list.remove('A')
+    amb_list.remove('C')
+    amb_list.remove('T')
+    amb_list.remove('G')
+
+    term = np.concatenate( np.where(
+            df.terminator_seq.str.contains('|'.join(amb_list))) )
+    prom = np.concatenate( np.where(
+            df.promoter_seq.str.contains('|'.join(amb_list))) )
+    
+    genes = df.gene_id[ np.unique(np.concatenate((term, prom))) ]
+
+    return genes
 
 def save_df(df, path='data/'):
 
+    seq_path   = path + 'ohe_seq.pkl'
     prom_path  = path + 'ohe_prom_seq.pkl'
     term_path  = path + 'ohe_term_seq.pkl'
     stats_path = path + 'statistics.pkl'
+
+    genes = genes_with_N(df)
+
+    print(genes)
+    # Filter genes with N
+    df = df[~df.gene_id.isin(genes)]
+
+    df["full_seq"] = df["promoter_seq"] + df["terminator_seq"]
+
+    X_full = ohe_pad( df.full_seq )
+    with open(seq_path,'wb') as f:
+        pickle.dump(X_full, f)
 
     X_prom = ohe_pad( df.promoter_seq )
     with open(prom_path,'wb') as f:
@@ -70,11 +102,13 @@ def save_df(df, path='data/'):
     with open(stats_path,'wb') as f:
         pickle.dump(y, f)
 
+    np.savez(path + 'dna_data.npz', full_seq=X_full, promoter_seq=X_prom, 
+              terminator_seq=X_term, statistics=y)
 
 
 if __name__ == "__main__":
 
-    df = pd.read_csv("data/sample.csv")
+    df = pd.read_csv("data/full.csv")
     save_df(df)
 
     
