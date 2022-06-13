@@ -166,7 +166,7 @@ def key_small_model(shapes, p):
 
     X = Conv1D(filters=int(p['filters1']),kernel_size=int(p['kernel_size1']),strides=1,dilation_rate=int(p['dilation1']),activation='relu',kernel_initializer='he_uniform')(X_input1)
     X = BatchNormalization()(X)
-    X = Dropout(float(p['dropout1']))(X)
+    # X = Dropout(float(p['dropout1']))(X)
     X = MaxPooling1D(pool_size=int(p['pool_size1']), strides=int(p['stride1']), padding='same')(X)
 
     X = LSTM(units=p['units1'], return_sequences=True, kernel_regularizer=l2(p['beta']))(X)

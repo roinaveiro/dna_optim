@@ -4,7 +4,7 @@ import tensorflow as tf
 import pickle
 import string
 
-def preprocess(data):
+def get_statistics(data):
 
     # Get statistics
     mean_df = data.mean(axis=1)
@@ -54,8 +54,6 @@ def get_full_data(path="data/", path_data="data/gene_FPKM_200501.csv",
 
 def genes_with_N(df):
 
-    #amb_list = ['N', 'M', 'W']
-
     amb_list = list(string.ascii_uppercase)
     amb_list.remove('A')
     amb_list.remove('C')
@@ -71,45 +69,64 @@ def genes_with_N(df):
 
     return genes
 
-def save_df(df, path='data/'):
+def save_df(df_seq, df_exp, path='data/', pkl_flag=False):
 
-    seq_path   = path + 'ohe_seq.pkl'
-    prom_path  = path + 'ohe_prom_seq.pkl'
-    term_path  = path + 'ohe_term_seq.pkl'
-    stats_path = path + 'statistics.pkl'
+    print("Preprocessing data...")
+
+    summmary_statistics = get_statistics(df_exp)
+    df = pd.merge(summmary_statistics, df_seq, 
+                left_index=True, right_on='entrez_id')
 
     genes = genes_with_N(df)
 
     print(genes)
-    # Filter genes with N
+    # Filter genes with ambiguous values
     df = df[~df.gene_id.isin(genes)]
 
     df["full_seq"] = df["promoter_seq"] + df["terminator_seq"]
 
     X_full = ohe_pad( df.full_seq )
-    with open(seq_path,'wb') as f:
-        pickle.dump(X_full, f)
-
     X_prom = ohe_pad( df.promoter_seq )
-    with open(prom_path,'wb') as f:
-        pickle.dump(X_prom, f)
-
     X_term = ohe_pad( df.terminator_seq )
-    with open(term_path,'wb') as f:
-        pickle.dump(X_term, f)
-
     y = df[["mean", "median", "std", "cv"]].values
-    with open(stats_path,'wb') as f:
-        pickle.dump(y, f)
 
-    np.savez(path + 'dna_data.npz', full_seq=X_full, promoter_seq=X_prom, 
+
+    if pkl_flag:
+
+        seq_path   = path + 'ohe_seq.pkl'
+        prom_path  = path + 'ohe_prom_seq.pkl'
+        term_path  = path + 'ohe_term_seq.pkl'
+        stats_path = path + 'statistics.pkl'
+
+        with open(seq_path,'wb') as f:
+            pickle.dump(X_full, f)
+
+        with open(prom_path,'wb') as f:
+            pickle.dump(X_prom, f)
+
+        with open(term_path,'wb') as f:
+            pickle.dump(X_term, f)
+
+        with open(stats_path,'wb') as f:
+            pickle.dump(y, f)
+
+    
+    print("Writing data...")
+
+    np.savez(path + 'preprocessed.npz', full_seq=X_full, promoter_seq=X_prom, 
               terminator_seq=X_term, statistics=y)
 
 
 if __name__ == "__main__":
 
-    df = pd.read_csv("data/full.csv")
-    save_df(df)
+    path_exp  = "data/data_atted/original_files/Ath-r.c5-0.expression.combat.txt" 
+    path_seq  = "data/data_atted/original_files/atted_r_seqs.csv"
+
+    print("Reading data...")
+    df_exp = pd.read_csv(path_exp, sep = "\t")
+    df_seq = pd.read_csv(path_seq)
+
+    save_df(df_seq, df_exp, path='data/data_atted/preprocessed/')
 
     
 
