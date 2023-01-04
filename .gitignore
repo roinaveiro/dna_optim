@@ -134,5 +134,8 @@ data/
 # Trash
 tmp/
 
+# Test
+test/
+
 # Saved models and results
 results/

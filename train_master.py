@@ -17,9 +17,9 @@ def load_data(fname, stdz = False, filter = False):
 
     npzfile = np.load(fname)
 
-    X = npzfile['full_seq']
+    X = npzfile['small_promoter_seq']
     stats = npzfile['statistics']
-    y = stats[:,0]
+    y = stats[:,1]
 
     if stdz:
         y = ( y - np.mean(y) ) / np.std(y)
@@ -72,23 +72,29 @@ def Params():
 
 if __name__ == "__main__":
 
-    fname_data = 'data/data_atted/preprocessed/preprocessed.npz'
-    X_train, X_val, y_train, y_val = load_data(fname_data)
+    #fname_data = 'data/data_atted/preprocessed/preprocessed.npz'
+    fname_data = 'data/data_atted/preprocessed/preprocessed_small_prom.npz'
+    X_train, X_val, y_train, y_val = load_data(fname_data, stdz = False, filter = True)
 
     print("Training...")
 
-    res_path = 'results/atted/'
+    # res_path = 'results/atted/small_model_regularized/'
 
-    with open(res_path + 'X_val.pkl','wb') as f:
-        pickle.dump(X_val, f)
+    if False:
 
-    with open(res_path + 'y_val.pkl','wb') as f:
-        pickle.dump(y_val, f)
+        with open(res_path + 'median_X_val.pkl','wb') as f:
+            pickle.dump(X_val, f)
+
+        with open(res_path + 'median_y_val.pkl','wb') as f:
+            pickle.dump(y_val, f)
 
 
     p = Params()
     model = key_small_model(X_train.shape[1:], p)
-    mcp = ModelCheckpoint(res_path + 'best_full_conv.model', save_best_only=True)
-    history = model.fit(X_train, y_train, epochs=150, callbacks=[mcp], 
-                validation_data=(X_val, y_val), batch_size=1024)
+    # mcp = ModelCheckpoint(res_path + 'best_full_conv_median.model', save_best_only=True)
+    # history = model.fit(X_train, y_train, epochs=150, callbacks=[mcp], 
+    #             validation_data=(X_val, y_val), batch_size=128)
+
+    history = model.fit(X_train, y_train, epochs=150, 
+                validation_data=(X_val, y_val), batch_size=64)
 

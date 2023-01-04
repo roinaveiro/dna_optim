@@ -124,7 +124,8 @@ def build_small(in_size, filters=5):
 
 def key_model(shapes, p):
 
-    X_input1 = Input(shape = [2150, 4])
+    #X_input1 = Input(shape = [2150, 4])
+    X_input1 = Input(shape = shapes)
     #X_input2 = Input(shape = shapes[1])
 
     X = Conv1D(filters=int(p['filters1']),kernel_size=int(p['kernel_size1']),strides=1,dilation_rate=int(p['dilation1']),activation='relu',kernel_initializer='he_uniform')(X_input1)
@@ -166,7 +167,7 @@ def key_small_model(shapes, p):
 
     X = Conv1D(filters=int(p['filters1']),kernel_size=int(p['kernel_size1']),strides=1,dilation_rate=int(p['dilation1']),activation='relu',kernel_initializer='he_uniform')(X_input1)
     X = BatchNormalization()(X)
-    # X = Dropout(float(p['dropout1']))(X)
+    X = Dropout(float(p['dropout1']))(X)
     X = MaxPooling1D(pool_size=int(p['pool_size1']), strides=int(p['stride1']), padding='same')(X)
 
     X = LSTM(units=p['units1'], return_sequences=True, kernel_regularizer=l2(p['beta']))(X)
@@ -177,7 +178,7 @@ def key_small_model(shapes, p):
 
     X = Dense(int(p['dense6']), activation='relu', kernel_initializer='he_uniform')(X)
     X = BatchNormalization()(X)
-    #X = Dropout(float(p['dropout6']))(X)
+    X = Dropout(float(p['dropout6']))(X)
     
     X = Dense(1)(X)
 
@@ -190,6 +191,33 @@ def key_small_model(shapes, p):
 
     return model
 
+
+def key_tiny_model(shapes, p):
+
+    X_input1 = Input(shape = shapes)
+
+    X = Conv1D(filters=8,kernel_size=4,strides=1,activation='relu',
+                          kernel_regularizer=l2(p['beta']), kernel_initializer='he_uniform')(X_input1)
+    X = BatchNormalization()(X)
+    X = Dropout(float(p['dropout1']))(X)
+    X = MaxPooling1D(pool_size=2, strides=1, padding='same')(X)
+
+    X = Flatten()(X)
+
+    X = Dense(32, activation='relu', kernel_initializer='he_uniform')(X)
+    X = BatchNormalization()(X)
+    X = Dropout(float(p['dropout6']))(X)
+    
+    X = Dense(1)(X)
+
+    model = Model(inputs = [X_input1], outputs = X)
+
+
+
+    model.compile(optimizer='adam', loss=tf.keras.losses.MeanSquaredError(),
+              metrics=['mse', coeff_determination])
+
+    return model
 
 
 
