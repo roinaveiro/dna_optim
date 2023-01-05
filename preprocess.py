@@ -43,6 +43,7 @@ def get_statistics(data):
     cv_df = data.apply(lambda x: np.std(x, ddof=1) / np.mean(x), axis=1)
     summ_df = pd.concat([mean_df, median_df, std_df, cv_df], axis=1)
     summ_df.columns = ["mean", "median", "std", "cv"]
+    summ_df.index = data.index
 
     #print("Writing Data")
     #summ_df.to_csv("data/summmary_statistics.csv")
@@ -120,18 +121,54 @@ def save_df(df_seq, df_exp, col1, col2, path='data/', pkl_flag=False):
               terminator_seq=X_term, statistics=y)
 
 
+def remove_low_expression_genes(data, pct_0=0.1):
+
+    ncol_0  = np.round(pct_0 * data.shape[1])
+    rows_in = np.apply_along_axis(lambda x: np.sum(x == 0), 
+                                  axis = 1, arr = data) < ncol_0
+
+    return data.loc[rows_in]
+
+def scale01(data):
+    return data.apply(lambda x: (x - x.min())
+                      / (x.max() - x.min()), axis = 0 )
+
+def get_top_genes(data, pct=0.1):
+    nrows_in = int(np.round(data.shape[0] * pct))
+    top_genes = data.sort_values("mean", ascending=False)
+    return top_genes.iloc[:nrows_in]
+
+
 if __name__ == "__main__":
 
-    path_exp  = "data/data_atted/original_files/Ath-r.c5-0.expression.combat.txt" 
-    # path_seq  = "data/data_atted/original_files/ath_sequences_3k.csv"
-    path_seq  = "data/data_atted/original_files/atted_r_seqs.csv"
+    if False:
 
-    print("Reading data...")
-    df_exp = pd.read_csv(path_exp, sep = "\t")
-    df_seq = pd.read_csv(path_seq)
-    df_seq = df_seq.drop(378) #This row has a promoter with len different than 1000
+        path_exp  = "data/data_atted/original_files/Ath-r.c5-0.expression.combat.txt" 
+        # path_seq  = "data/data_atted/original_files/ath_sequences_3k.csv"
+        path_seq  = "data/data_atted/original_files/atted_r_seqs.csv"
 
-    save_df(df_seq, df_exp, 'promoter_seq', 'terminator_seq', path='data/data_atted/preprocessed/')
+        print("Reading data...")
+        df_exp = pd.read_csv(path_exp, sep = "\t")
+        df_seq = pd.read_csv(path_seq)
+        df_seq = df_seq.drop(378) #This row has a promoter with len different than 1000
+
+        save_df(df_seq, df_exp, 'promoter_seq', 'terminator_seq', path='data/data_atted/preprocessed/')
+
+    data1 = pd.read_csv("data/data_old/original_files/gene_FPKM_200501.csv")
+    data_red = remove_low_expression_genes(data1, pct_0=0.1)
+    print("Number of low expression genes: ", data1.shape[0] - data_red.shape[0])
+    data_red = scale01(data_red)
+    statistics = get_statistics(data_red)
+    top1 = get_top_genes(statistics, pct=0.1)
+    top1.to_csv("results/top1.csv")
+
+    data2 = pd.read_csv("data/data_atted/original_files/Ath-r.c5-0.expression.combat.txt", sep = "\t")
+    data_red = remove_low_expression_genes(data2, pct_0=0.1)
+    print("Number of low expression genes: ", data2.shape[0] - data_red.shape[0])
+    data_red = scale01(data_red)
+    statistics = get_statistics(data_red)
+    top2 = get_top_genes(statistics, pct=0.1)
+    top2.to_csv("results/top2.csv")
 
     
 
