@@ -121,13 +121,31 @@ def save_df(df_seq, df_exp, col1, col2, path='data/', pkl_flag=False):
               terminator_seq=X_term, statistics=y)
 
 
-def remove_low_expression_genes(data, pct_0=0.1):
+def remove_low_expression_genes(data, pct_0=0.1, th=0.0, all=False):
 
-    ncol_0  = np.round(pct_0 * data.shape[1])
-    rows_in = np.apply_along_axis(lambda x: np.sum(x == 0), 
-                                  axis = 1, arr = data) < ncol_0
+    if all:
+         rows_in = np.apply_along_axis(lambda x: np.sum(x <= th), 
+                                  axis = 1, arr = data) == 0
+
+    else: 
+        ncol_0  = np.round(pct_0 * data.shape[1])
+        rows_in = np.apply_along_axis(lambda x: np.sum(x <= th), 
+                                    axis = 1, arr = data) < ncol_0
 
     return data.loc[rows_in]
+
+def filter_protein_genes(data, protein_gene_path):
+
+    with open(protein_gene_path) as f:
+        protein_genes = f.readlines()
+    
+    for i in range(len(protein_genes)):
+        protein_genes[i] = protein_genes[i].strip()
+        
+    protein_genes = np.array(protein_genes)
+
+    return data.loc[data.index.isin(protein_genes)]
+
 
 def scale01(data):
     return data.apply(lambda x: (x - x.min())
@@ -155,19 +173,29 @@ if __name__ == "__main__":
         save_df(df_seq, df_exp, 'promoter_seq', 'terminator_seq', path='data/data_atted/preprocessed/')
 
     data1 = pd.read_csv("data/data_old/original_files/gene_FPKM_200501.csv")
-    data_red = remove_low_expression_genes(data1, pct_0=0.1)
+    data1 = data1.set_index('Sample')
+    data_red = remove_low_expression_genes(data1, pct_0=0.1, all=True)
+    data_red = filter_protein_genes(data_red, "data/protein_coding_gene_ids.txt")
     print("Number of low expression genes: ", data1.shape[0] - data_red.shape[0])
+
     data_red = scale01(data_red)
     statistics = get_statistics(data_red)
-    top1 = get_top_genes(statistics, pct=0.1)
-    top1.to_csv("results/top1.csv")
+    top1 = get_top_genes(statistics, pct=0.2)
+    top1.to_csv("results/top1_strict.csv")
 
     data2 = pd.read_csv("data/data_atted/original_files/Ath-r.c5-0.expression.combat.txt", sep = "\t")
-    data_red = remove_low_expression_genes(data2, pct_0=0.1)
+    data2 = 2**data2
+    conversion = pd.read_csv("data/gene_id_conversion.txt", delim_whitespace=True )
+    conversion = conversion.set_index("ENTREZID")
+    data2 = data2[data2.index.isin(conversion.index)]
+    data2.index = conversion.loc[data2.index.values, 'TAIR']
+
+    data_red = remove_low_expression_genes(data2, pct_0=0.1, th=0.1, all=True)
+    data_red = filter_protein_genes(data_red, "data/protein_coding_gene_ids.txt")
     print("Number of low expression genes: ", data2.shape[0] - data_red.shape[0])
     data_red = scale01(data_red)
     statistics = get_statistics(data_red)
-    top2 = get_top_genes(statistics, pct=0.1)
+    top2 = get_top_genes(statistics, pct=0.2)
     top2.to_csv("results/top2.csv")
 
     
